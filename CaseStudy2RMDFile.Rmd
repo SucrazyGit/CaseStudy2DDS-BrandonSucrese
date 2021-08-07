@@ -6,6 +6,9 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+```{r}
+Youtubelink = "https://youtu.be/mD79gMNnW_E"
+```
 
 ## Configure necessairy libraries
 ```{r}
@@ -160,8 +163,3 @@ salary_pred = predict(lm_model, no_salary_test) ## Predicts the monthly income o
 final_salary_data = cbind(no_salary_data, salary_pred) ## Combines the incomplete salary data set and predicts into a single completed data set
 write.csv(final_salary_data, "C:/Users/bmsuc/OneDrive/Desktop/Case2PredictionsBrandonSucreseSalary.csv") ## Saves the new data set to the file location given
 ```
-
-
-
-
-
