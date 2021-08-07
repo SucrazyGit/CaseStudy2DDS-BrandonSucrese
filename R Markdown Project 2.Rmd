@@ -1,0 +1,167 @@
+---
+title: "DS 3606 Project 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Configure necessairy libraries
+```{r}
+library(MASS)
+library(epitools)
+library(naniar)
+library(tidyverse)
+library(mice)
+library(ggplot2)
+library(htmlwidgets)
+library(caTools)
+library(class)
+library(caret)
+library(GGally)
+library(readr)
+library(e1071)
+library(naivebayes)
+library(randomForest)
+library(Metrics)
+library(reshape)
+library(knitr)
+```
+
+## Read in the Data
+```{r}
+employee_data = read.csv("https://raw.githubusercontent.com/BivinSadler/MSDS_6306_Doing-Data-Science/Master/Unit%2014%20and%2015%20Case%20Study%202/CaseStudy2-data.csv")
+no_attrition_data = read.csv("https://raw.githubusercontent.com/BivinSadler/MSDS_6306_Doing-Data-Science/Master/Unit%2014%20and%2015%20Case%20Study%202/CaseStudy2CompSet%20No%20Attrition.csv")
+no_salary_data = read.csv("https://raw.githubusercontent.com/SucrazyGit/DS-3606-Project-2/main/CaseStudy2_NoSalary.csv")
+```
+
+## Summarise Data
+```{r}
+summary(employee_data) ## Summary statistics
+gg_miss_var(employee_data) ## Looks for missing values
+```
+
+
+## Setting Variables to the correct format
+```{r}
+employee_train = employee_data[,-1]## Removes the ID term from the Data Set
+employee_train = employee_train[,-22] ## Removes "Over 18" Variable
+employee_train$BusinessTravel = as.factor(employee_train$BusinessTravel)
+employee_train$Department = as.factor(employee_train$Department)
+employee_train$JobLevel = as.factor(employee_train$JobLevel)
+employee_train$EducationField = as.factor(employee_train$EducationField)
+employee_train$Gender = as.factor(employee_train$Gender)
+employee_train$JobRole = as.factor(employee_train$JobRole)
+employee_train$MaritalStatus = as.factor(employee_train$MaritalStatus)
+employee_train$OverTime = as.factor(employee_train$OverTime)
+employee_train$Attrition = as.factor(employee_train$Attrition)
+```
+
+## Setting Variables to the correct format
+```{r}
+no_attrition_test = no_attrition_data[,-1]  ## Removes the ID term from the Data Set
+no_attrition_test$BusinessTravel = as.factor(no_attrition_test$BusinessTravel)
+no_attrition_test$Department = as.factor(no_attrition_test$Department)
+no_attrition_test$JobLevel = as.factor(no_attrition_test$JobLevel)
+no_attrition_test$EducationField = as.factor(no_attrition_test$EducationField)
+no_attrition_test$Gender = as.factor(no_attrition_test$Gender)
+no_attrition_test$JobRole = as.factor(no_attrition_test$JobRole)
+no_attrition_test$MaritalStatus = as.factor(no_attrition_test$MaritalStatus)
+no_attrition_test$OverTime = as.factor(no_attrition_test$OverTime)
+```
+
+## Setting Variables to the correct format
+```{r}
+no_salary_test = no_salary_data[,-1]  ## Removes the ID term from the Data Set
+no_salary_test$BusinessTravel = as.factor(no_salary_test$BusinessTravel)
+no_salary_test$Department = as.factor(no_salary_test$Department)
+no_salary_test$EducationField = as.factor(no_salary_test$EducationField)
+no_salary_test$Gender = as.factor(no_salary_test$Gender)
+no_salary_test$JobLevel = as.factor(no_salary_test$JobLevel)
+no_salary_test$JobRole = as.factor(no_salary_test$JobRole)
+no_salary_test$MaritalStatus = as.factor(no_salary_test$MaritalStatus)
+no_salary_test$OverTime = as.factor(no_salary_test$OverTime)
+no_salary_test$Attrition = as.factor(no_salary_test$Attrition)
+```
+
+```{r}
+corr_data = employee_train[, c(1,4,6,7.9,10,11,13,14,17,19,20,21,23,24,25,27,28,29,30,31,32,33,34)] ## Puts on the continuous variables into a data set
+cormat = round(cor(corr_data),2) ## Setting up data set
+melt_cormat = melt(cormat) ## Setting up data set
+melt_cormat %>% ggplot(aes(x=X1, y=X2, fill=value)) + geom_tile() + ggtitle("Correlation Between Variables") ## Create correlation matrix
+```
+
+## Important Graphs
+```{r}
+##Graphs for important variables in relation to Attrition
+employee_train %>% ggplot(aes(x=Age, color = Attrition)) + geom_boxplot() + ggtitle("Age vs Attrition") ## Plots age vs attrition
+employee_train %>% ggplot(aes(x=MonthlyIncome, color = Attrition)) + geom_boxplot() + ggtitle("Monthly Income vs Attrition") ## Plots monthly income vs attrition
+employee_train %>% ggplot(aes(x=TotalWorkingYears, color = Attrition)) + geom_boxplot() + ggtitle("Total Working Years vs Attrition") ## Plots total working years vs attrition
+employee_train %>% ggplot(aes(x=YearsAtCompany, color = Attrition)) + geom_boxplot() + ggtitle("Years at the Company vs Attrition") ## Plots years at the company vs attrition
+employee_train %>% ggplot(aes(x=DailyRate, color = Attrition)) + geom_boxplot() + ggtitle("Daily Rate vs Attrition") ## Plots daily rate vs attrition
+employee_train %>% ggplot(aes(x=DistanceFromHome, color = Attrition)) + geom_boxplot() + ggtitle("Distance from Home vs Attrition") ## Plots distance from home vs attrition
+
+##Graphs for important variables in relation to Monthly Income
+employee_train %>% ggplot(aes(x=MonthlyIncome, color = JobLevel)) + geom_boxplot() + ggtitle("Salary vs Job Level") ## Plots monthly income vs job level
+employee_train %>% ggplot(aes(x=MonthlyIncome, color = JobRole)) + geom_boxplot() + ggtitle("Salary vs Job Role") ## Plots monthly income vs job role
+employee_train %>% ggplot(aes(x=MonthlyIncome, color = Gender)) + geom_boxplot() + ggtitle("Salary vs Gender") ## Plots monthly income vs job level
+employee_train %>% ggplot(aes(x=MonthlyIncome, y=TotalWorkingYears, color=Gender)) + geom_point() + ggtitle("Salary vs Total Working Years") ## Plots monthly income vs total working years
+employee_train %>% ggplot(aes(x=MonthlyIncome, color = BusinessTravel)) + geom_boxplot() + ggtitle("Salary vs Travel Amount") ## Plots monthly income vs travel amount
+```
+
+## Splits Data into test and training date sets
+```{r}
+set.seed(10000) ## Sets seed
+splitPerc = .70 ## Determines test and train data split
+
+trainIndices = sample(1:dim(employee_train)[1],round(splitPerc * dim(employee_train)[1])) ## Splits data set into training and test sets
+train = employee_train[trainIndices,]
+test = employee_train[-trainIndices,]
+```
+
+## Naive Bayes Model: Determines Attrition 
+```{r}
+nb_model = naive_bayes(as.factor(Attrition)~., data = employee_train) ## creates naive bayes model
+nb_classifications = predict(nb_model,test) ## Predicts using model 
+table(test$Attrition,nb_classifications) ## Generates the table of predicted vs actual
+nb_CM = confusionMatrix(table(test$Attrition,nb_classifications)) ## Creates a confusion matrix
+print(nb_CM) ## Prints all the models statistics including sensitivity and specificity 
+```
+
+## Random Forrest Model: Determines Attrition
+```{r}
+rf_model = randomForest(as.factor(Attrition)~., data = train) ## creates random forest model
+rf_classifications = predict(rf_model,test) ## Predicts using the random forest model
+table(test$Attrition,rf_classifications) ## Generates the table of predicted vs actual
+rf_CM = confusionMatrix(table(test$Attrition,rf_classifications)) ## Creates a confusion matrix
+print(rf_CM) ## Prints all the models statistics including sensitivity and specificity 
+```
+
+## Using Random Forest Model to predict attrition
+```{r}
+attrition_pred = predict(rf_model, no_attrition_test) ## Predicts the attrition classifications of the data set that doesn't have attrition values. Uses the random forest model to handle the predictions
+final_attrition_data = cbind(no_attrition_data, attrition_pred) ## Combines predicted attrition values with the data set with no attrition to have a finalized data set
+write.csv(final_attrition_data, "C:/Users/bmsuc/OneDrive/Desktop/Case2PredictionsBrandonSucreseAttrition.csv") ## Saves the new data set to the file location given
+```
+
+## Simple Linear Model: Determines Salary
+```{r}
+lm_model = lm(MonthlyIncome~.,data = train) ## creates simple linear regression model
+coef(lm_model) ## Looks at the coefficients of the variables being utilized
+summary(lm_model) ## Summaries the new linear model
+lm_predictions = predict(lm_model,test) ## Predictions monthly income of the test set using the linear model
+RMSE(lm_predictions, test$MonthlyIncome) ## Prints the RSME of the model
+```
+
+## Using Simple Linear Model to predict Monthly Income
+```{r}
+salary_pred = predict(lm_model, no_salary_test) ## Predicts the monthly income of the incomplete salary data set
+final_salary_data = cbind(no_salary_data, salary_pred) ## Combines the incomplete salary data set and predicts into a single completed data set
+write.csv(final_salary_data, "C:/Users/bmsuc/OneDrive/Desktop/Case2PredictionsBrandonSucreseSalary.csv") ## Saves the new data set to the file location given
+```
+
+
+
+
+
