@@ -1,5 +1,5 @@
 ---
-title: "DS 3606 Project 2"
+title: "DS 3606 Project 2.1"
 output: html_document
 ---
 
